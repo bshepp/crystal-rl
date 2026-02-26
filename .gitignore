@@ -1,0 +1,45 @@
+# ── Python ──────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg
+dist/
+build/
+*.whl
+
+# ── Virtual environments ───────────────────────────────
+.venv*/
+
+# ── Data / model artifacts (large, reproducible) ──────
+data/checkpoints/
+data/bootstrap/
+data/*.npz
+
+# ── Pseudopotentials (downloaded, not source) ──────────
+pseudopotentials/
+
+# ── QE scratch I/O ─────────────────────────────────────
+espresso.pwo
+espresso.pwi
+espresso.err
+input_tmp.in
+$Temp/
+
+# ── IDE / OS ───────────────────────────────────────────
+.vscode/
+*.swp
+*.swo
+*~
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# ── Linting / testing caches ──────────────────────────
+.ruff_cache/
+.pytest_cache/
+.mypy_cache/
+htmlcov/
+.coverage
+
+# ── Docker build context (already in .dockerignore) ───
+# docker-compose.yml and Dockerfile ARE tracked

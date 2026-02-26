@@ -1,0 +1,22 @@
+services:
+  qe-rl:
+    build: .
+    container_name: qe-rl-dev
+    volumes:
+      - .:/workspace
+      - ./pseudopotentials:/opt/pseudopotentials
+      - ./data:/workspace/data
+    environment:
+      - ESPRESSO_PSEUDO=/opt/pseudopotentials
+      - OMP_NUM_THREADS=4
+      - OMPI_ALLOW_RUN_AS_ROOT=1
+      - OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1
+    shm_size: '4gb'
+    deploy:
+      resources:
+        limits:
+          cpus: '16'
+          memory: 16G
+    stdin_open: true
+    tty: true
+    command: /bin/bash

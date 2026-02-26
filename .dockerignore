@@ -1,0 +1,13 @@
+.git
+.venv*
+__pycache__
+*.pyc
+data/checkpoints
+data/jarvis_fingerprints.npz
+data/mp_fingerprints.npz
+data/jarvis_gap_only_fingerprints.npz
+data/bootstrap/s3-full
+$Temp
+*.egg-info
+.ruff_cache
+.pytest_cache

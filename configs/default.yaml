@@ -1,0 +1,114 @@
+# Default configuration for QE calculations and RL training
+
+qe:
+  # Path to QE executables (inside Docker)
+  pw_command: "mpirun --allow-run-as-root -np 2 pw.x"
+  pp_command: "mpirun --allow-run-as-root -np 2 pp.x"
+  bands_command: "mpirun --allow-run-as-root -np 2 bands.x"
+  
+  # Pseudo directory (matches ESPRESSO_PSEUDO env var in Docker)
+  pseudo_dir: "/opt/pseudopotentials"
+  
+  # Scratch directory for QE temp files 
+  scratch_dir: "/tmp/qe_scratch"
+  
+  # Default calculation parameters
+  defaults:
+    ecutwfc: 40.0       # Plane-wave cutoff (Ry)
+    ecutrho: 320.0      # Charge density cutoff (Ry) 
+    conv_thr: 1.0e-8    # SCF convergence threshold
+    mixing_beta: 0.7    # Mixing factor for SCF
+    occupations: "smearing"
+    smearing: "cold"
+    degauss: 0.02       # Smearing width (Ry)
+    kpoints: [6, 6, 6]  # k-point grid
+    kpoints_bands: 40   # k-points along each band path segment
+
+rl:
+  # Environment
+  max_steps_per_episode: 50
+  reward_scale: 1.0
+  
+  # Action space: what the agent can modify
+  actions:
+    lattice_perturbation: 0.05    # max fractional change per step
+    position_perturbation: 0.02   # max fractional coordinate shift
+    species_swap: true             # allow swapping atom types
+    
+  # Training
+  algorithm: "PPO"
+  learning_rate: 3.0e-4
+  batch_size: 128
+  n_steps: 512
+  n_epochs: 10
+  gamma: 0.99
+  total_timesteps: 250_000
+  
+  # Surrogate model
+  surrogate:
+    type: "multitask_mlp"  # multitask_mlp | mlp (gnn planned for future)
+    hidden_dim: 192
+    n_layers: 4
+    train_every: 100      # retrain surrogate every N DFT evals
+    min_dataset_size: 200 # minimum DFT results before using surrogate
+    dft_validation_rate: 0.05  # fraction of steps that use real DFT
+
+# Target properties to optimize
+targets:
+  # Primary: minimize effective mass (most negative band curvature)
+  effective_mass:
+    weight: 1.0
+    direction: "minimize"  # want smallest (most negative) effective mass
+    
+  # Constraint: must be semiconductor (gap > 0.05 eV)
+  band_gap:
+    metal_penalty: -3.0    # penalty if predicted gap < 0.05 eV
+
+  # Constraint: must be physically reasonable
+  forces_threshold: 0.05  # eV/Angstrom - max force for "relaxed" structure
+
+# Species palette for structure generation
+species_palette:
+  - "Si"
+  - "Ge"  
+  - "C"
+  - "Sn"
+  - "N"
+  - "P"
+  - "As"
+  - "Ga"
+  - "In"
+  - "Al"
+
+# Initial structures to seed exploration (10 crystal families)
+seed_structures:
+  - name: "silicon-diamond"
+    formula: "Si"
+    spacegroup: 227
+  - name: "germanium-diamond"  
+    formula: "Ge"
+    spacegroup: 227
+  - name: "carbon-diamond"
+    formula: "C-diamond"
+    spacegroup: 227
+  - name: "gaas-zincblende"
+    formula: "GaAs"
+    spacegroup: 216
+  - name: "alas-zincblende"
+    formula: "AlAs"
+    spacegroup: 216
+  - name: "inas-zincblende"
+    formula: "InAs"
+    spacegroup: 216
+  - name: "gap-zincblende"
+    formula: "GaP"
+    spacegroup: 216
+  - name: "sic-3c"
+    formula: "SiC-3C"
+    spacegroup: 216
+  - name: "inp-zincblende"
+    formula: "InP"
+    spacegroup: 216
+  - name: "aln-wurtzite"
+    formula: "AlN"
+    spacegroup: 186
