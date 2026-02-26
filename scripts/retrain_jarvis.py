@@ -98,7 +98,7 @@ def load_jarvis_data(
             m_star = rec.get("avg_elec_mass", 0)
             if m_star is None or not isinstance(m_star, (int, float)):
                 m_star = 0
-            if require_mstar and m_star <= 0:
+            if require_mstar and m_star == 0:
                 skip_reasons["no_mstar"] += 1
                 continue
 
@@ -108,8 +108,8 @@ def load_jarvis_data(
                 skip_reasons["bad_gap"] += 1
                 continue
 
-            # Check m* range (if present)
-            if m_star > 0 and m_star > max_mstar:
+            # Check m* range (if present) — use abs to allow negative m*
+            if m_star != 0 and abs(m_star) > max_mstar:
                 skip_reasons["bad_mstar"] += 1
                 continue
 
@@ -145,7 +145,7 @@ def load_gap_only_data(
     for rec in all_data:
         try:
             m_star = rec.get("avg_elec_mass", 0)
-            if m_star is not None and m_star > 0:
+            if m_star is not None and m_star != 0:
                 continue  # skip — these are already in the main dataset
 
             gap = rec.get("optb88vdw_bandgap", None)
@@ -189,8 +189,9 @@ def compute_fingerprints(records: list[dict], label: str = "") -> tuple[np.ndarr
             fp = structure_to_fingerprint(atoms)
 
             m_star = rec.get("avg_elec_mass", 0)
-            if m_star is None or m_star <= 0:
+            if m_star is None:
                 m_star = 0.0  # placeholder for gap-only records
+            # Keep negative m* — indicates band inversion
 
             gap = rec.get("optb88vdw_bandgap", 0)
 
@@ -245,10 +246,10 @@ def load_bootstrap_data(
             if fps is not None and fps.shape[1] == 152:
                 mstar_key = "targets_mstar" if "targets_mstar" in data else "targets"
                 gap_key = "targets_gap" if "targets_gap" in data else None
-                y_m = np.abs(data[mstar_key])  # absolute value to match JARVIS convention
+                y_m = data[mstar_key].astype(float)  # preserve sign from DFT curvature
                 y_g = data[gap_key] if gap_key else np.zeros_like(y_m)
-                # Filter: only keep records with reasonable m* and semiconductor gap
-                valid = (y_m > 0.001) & (y_m < 50.0) & np.isfinite(y_m) & np.isfinite(y_g)
+                # Filter: keep records with reasonable |m*| — allow negative (band inversion)
+                valid = (np.abs(y_m) > 0.001) & (np.abs(y_m) < 50.0) & np.isfinite(y_m) & np.isfinite(y_g)
                 log.info(f"  Loaded bootstrap from {path}: {fps.shape[0]} records ({valid.sum()} valid), {fps.shape[1]}d")
                 return fps[valid], y_m[valid], y_g[valid]
 
@@ -385,11 +386,13 @@ def finetune_gap_head(
 
     if len(true_m) > 2:
         try:
-            corr_m, _ = pearsonr(true_m[true_m > 0], pred_m[true_m > 0])
+            has_m = true_m != 0
+            corr_m, _ = pearsonr(true_m[has_m], pred_m[has_m])
             metrics["mstar_correlation"] = float(corr_m)
         except:
             metrics["mstar_correlation"] = float("nan")
-        metrics["mstar_mae"] = np.mean(np.abs(true_m[true_m > 0] - pred_m[true_m > 0]))
+        has_m = true_m != 0
+        metrics["mstar_mae"] = np.mean(np.abs(true_m[has_m] - pred_m[has_m]))
 
     if len(true_g) > 2:
         try:
@@ -562,14 +565,15 @@ def train_multitask(
         "epochs_trained": epoch + 1 if 'epoch' in dir() else 0,
     }
 
-    # m* correlation and MAE
+    # m* correlation and MAE — only on records with actual m* data
     if len(true_m) > 2:
+        has_m = true_m != 0
         try:
-            corr_m, _ = pearsonr(true_m, pred_m)
+            corr_m, _ = pearsonr(true_m[has_m], pred_m[has_m])
             metrics["mstar_correlation"] = corr_m
         except:
             metrics["mstar_correlation"] = float("nan")
-        metrics["mstar_mae"] = np.mean(np.abs(true_m - pred_m))
+        metrics["mstar_mae"] = np.mean(np.abs(true_m[has_m] - pred_m[has_m]))
 
     # gap correlation and MAE
     if len(true_g) > 2:
@@ -653,7 +657,8 @@ def main():
     log.info(f"  gap range: [{y_g_jarvis.min():.3f}, {y_g_jarvis.max():.3f}], mean={y_g_jarvis.mean():.3f}")
 
     # Track which records have m* (for masked loss)
-    has_mstar = y_m_jarvis > 0
+    # Non-zero means we have actual m* data (positive or negative)
+    has_mstar = y_m_jarvis != 0
 
     # ===== Step 2: Optionally load bootstrap data =====
     if args.include_bootstrap:
@@ -671,7 +676,7 @@ def main():
                 assert ym_boot is not None and yg_boot is not None
                 y_m_jarvis = np.concatenate([y_m_jarvis, ym_boot])
                 y_g_jarvis = np.concatenate([y_g_jarvis, yg_boot])
-                has_mstar = np.concatenate([has_mstar, ym_boot > 0])
+                has_mstar = np.concatenate([has_mstar, ym_boot != 0])
 
     # ===== Step 3a: Optionally add Materials Project gap data =====
     # When two-phase, MP data is added AFTER Phase 1 training (gap head fine-tune)
@@ -730,8 +735,8 @@ def main():
     # Final sanitize
     X_jarvis, y_m_jarvis, y_g_jarvis = sanitize_arrays(X_jarvis, y_m_jarvis, y_g_jarvis)
     # has_mstar might have been invalidated by sanitize — but it tracks by index
-    # Recompute
-    has_mstar = y_m_jarvis > 0
+    # Recompute: non-zero m* means real data (positive or negative)
+    has_mstar = y_m_jarvis != 0
 
     # ===== Step 4: Train/val split =====
     n = len(X_jarvis)

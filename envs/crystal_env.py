@@ -8,7 +8,8 @@ The environment operates in two modes:
   2. Surrogate mode: uses a trained MultiTaskMLP (fast, approximate)
 
 Reward shaping:
-  - Primary reward: 1/m* (lower effective mass → higher reward)
+  - Primary reward: 1/m* for positive m* (lighter carriers → higher reward)
+  - Negative m* penalty: -2.0 (band inversion or surrogate confusion)
   - Metal penalty: -3.0 if predicted band gap < 0.05 eV
   - Soft stability discount: reward *= exp(-alpha * instability_score)
 """
@@ -254,12 +255,17 @@ class CrystalEnv(gym.Env):
                 info["predicted_value"] = prediction
                 predicted_gap = None
 
-            # Apply reward shaping
+            # Apply reward shaping — signed m*
             m = float(prediction)
-            if m < 0:
-                reward = 2.0 / max(abs(m), 0.01)  # reward for negative mass, clamp denom
+            if m <= 0:
+                # Negative/zero m* = band inversion or surrogate confusion.
+                # Not a useful conventional semiconductor.
+                reward = -2.0
+                info["negative_mstar"] = True
             else:
-                reward = -abs(m)  # penalize positive mass
+                # Positive m*: lighter carriers → higher reward.
+                # Clamp denominator to avoid huge reward from near-zero predictions.
+                reward = 1.0 / max(m, 0.01)
 
             # Penalize predicted metals (band gap ≈ 0) — they are useless semiconductors
             if predicted_gap is not None and predicted_gap < 0.05:
@@ -298,13 +304,12 @@ class CrystalEnv(gym.Env):
                 # Reward: we want small |m*| — materials where carriers are light
                 # or where curvature is inverted (negative m*)
                 if props.min_effective_mass is not None and np.isfinite(props.min_effective_mass):
-                    # Reward = -|m*| so smaller mass = higher reward
-                    # Bonus for negative mass (inverted curvature)
+                    # Signed m*: penalize band inversion, reward light positive mass
                     m = props.min_effective_mass
-                    if m < 0:
-                        reward = 2.0 / abs(m)  # large reward for negative mass
+                    if m <= 0:
+                        reward = -2.0  # band inversion penalty
                     else:
-                        reward = -abs(m)
+                        reward = 1.0 / max(m, 0.01)
                     info["min_effective_mass"] = m
                     return reward
 
