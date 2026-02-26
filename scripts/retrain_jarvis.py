@@ -386,7 +386,7 @@ def finetune_gap_head(
     if len(true_m) > 2:
         try:
             corr_m, _ = pearsonr(true_m[true_m > 0], pred_m[true_m > 0])
-            metrics["mstar_correlation"] = corr_m
+            metrics["mstar_correlation"] = float(corr_m)
         except:
             metrics["mstar_correlation"] = float("nan")
         metrics["mstar_mae"] = np.mean(np.abs(true_m[true_m > 0] - pred_m[true_m > 0]))
@@ -394,7 +394,7 @@ def finetune_gap_head(
     if len(true_g) > 2:
         try:
             corr_g, _ = pearsonr(true_g, pred_g)
-            metrics["gap_correlation"] = corr_g
+            metrics["gap_correlation"] = float(corr_g)
         except:
             metrics["gap_correlation"] = float("nan")
         metrics["gap_mae"] = np.mean(np.abs(true_g - pred_g))
@@ -559,7 +559,7 @@ def train_multitask(
         "m_mean": m_mean, "m_std": m_std,
         "g_mean": g_mean, "g_std": g_std,
         "best_val_loss": best_val_loss,
-        "epochs_trained": epoch + 1,
+        "epochs_trained": epoch + 1 if 'epoch' in dir() else 0,
     }
 
     # m* correlation and MAE
@@ -668,6 +668,7 @@ def main():
             else:
                 log.info(f"Adding {X_boot.shape[0]} bootstrap records")
                 X_jarvis = np.vstack([X_jarvis, X_boot])
+                assert ym_boot is not None and yg_boot is not None
                 y_m_jarvis = np.concatenate([y_m_jarvis, ym_boot])
                 y_g_jarvis = np.concatenate([y_g_jarvis, yg_boot])
                 has_mstar = np.concatenate([has_mstar, ym_boot > 0])

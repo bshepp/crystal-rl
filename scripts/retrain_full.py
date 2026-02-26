@@ -22,6 +22,10 @@ import json
 import logging
 import time
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from models.surrogate import SurrogatePredictor
 
 import numpy as np
 
@@ -117,7 +121,7 @@ def train_surrogate(
     y: np.ndarray,
     epochs: int = 1500,
     val_fraction: float = 0.1,
-) -> "SurrogatePredictor":
+) -> SurrogatePredictor:
     """Train surrogate on full dataset with train/val split for monitoring."""
     from models.surrogate import SurrogatePredictor
 
@@ -151,6 +155,7 @@ def train_surrogate(
     logger.info(f"\nTraining surrogate for {epochs} epochs...")
     best_val_loss = float("inf")
     best_epoch = 0
+    best_state = None
 
     import torch
 
@@ -182,7 +187,7 @@ def train_surrogate(
             best_state = {k: v.clone() for k, v in surrogate.model.state_dict().items()}
 
     # Restore best weights
-    if best_state:
+    if best_state is not None:
         surrogate.model.load_state_dict(best_state)
         logger.info(f"\nRestored best model from epoch {best_epoch} (val_MSE={best_val_loss:.4f})")
 

@@ -64,7 +64,7 @@ class CrystalEnv(gym.Env):
 
     def __init__(
         self,
-        seed_structure: str = "Si",
+        seed_structure: str | list[str] = "Si",
         species_palette: Optional[list[str]] = None,
         max_steps: int = 50,
         use_surrogate: bool = False,
@@ -125,7 +125,7 @@ class CrystalEnv(gym.Env):
         )
 
         # Episode state
-        self.atoms = None
+        self.atoms: Optional["Atoms"] = None
         self.step_count = 0
         self.best_reward = -np.inf
         self.episode_history = []
@@ -136,6 +136,7 @@ class CrystalEnv(gym.Env):
 
     def _get_obs(self) -> np.ndarray:
         """Compute observation from current structure (cached)."""
+        assert self.atoms is not None, "call reset() before _get_obs()"
         if self._cached_obs is None:
             self._cached_obs = structure_to_fingerprint(self.atoms, n_bins=self._n_rdf_bins)
         return self._cached_obs
@@ -202,7 +203,7 @@ class CrystalEnv(gym.Env):
                     bands_result.kpoints,
                     bands_result.band_energies,
                     n_electrons,
-                    self.atoms.cell[:],
+                    np.array(self.atoms.cell),
                 )
                 info["band_gap"] = props.band_gap
                 info["effective_mass_e"] = props.effective_mass_electron
@@ -235,6 +236,7 @@ class CrystalEnv(gym.Env):
 
     def _apply_action(self, action: int) -> None:
         """Apply the chosen action to modify the structure."""
+        assert self.atoms is not None
         rng = self._rng
 
         if action == 0:  # perturb_pos_small
@@ -245,12 +247,12 @@ class CrystalEnv(gym.Env):
 
         elif action == 2:  # compress_lattice
             scale = 1.0 - rng.uniform(0.01, 0.05)
-            cell = self.atoms.get_cell()
+            cell = np.array(self.atoms.get_cell())
             self.atoms.set_cell(cell * scale, scale_atoms=True)
 
         elif action == 3:  # expand_lattice
             scale = 1.0 + rng.uniform(0.01, 0.05)
-            cell = self.atoms.get_cell()
+            cell = np.array(self.atoms.get_cell())
             self.atoms.set_cell(cell * scale, scale_atoms=True)
 
         elif action == 4:  # shear_lattice
@@ -286,6 +288,7 @@ class CrystalEnv(gym.Env):
 
     def step(self, action: int) -> tuple[np.ndarray, float, bool, bool, dict]:
         """Take an action and return (obs, reward, terminated, truncated, info)."""
+        assert self.atoms is not None, "call reset() before step()"
         self.step_count += 1
 
         # Apply the structural modification

@@ -280,7 +280,9 @@ def structure_to_fingerprint(atoms: Atoms, n_bins: int = 64) -> np.ndarray:
 
     # ---- 5. Partial RDF: electronegativity-weighted (n_bins dims) ----
     # Weight each pair distance by |Z_i - Z_j| to encode chemical contrast
-    if len(d_arr) > 0:
+    # rho and shell_vol are always defined here because both RDF blocks share
+    # the same len(d_arr) > 0 condition, but we guard for the type checker.
+    if len(d_arr) > 0 and rho > 0:
         z = atoms.get_atomic_numbers()
         weights = np.abs(z[i_idx].astype(np.float32) - z[j_idx].astype(np.float32))
         weights /= max(weights.max(), 1.0)  # normalize to [0, 1]

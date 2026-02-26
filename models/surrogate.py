@@ -335,9 +335,13 @@ class MultiTaskSurrogatePredictor:
         loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
         best_val_loss = float("inf")
-        best_state = None
+        best_state: dict | None = None
         patience_counter = 0
         patience = 100
+        epoch_loss_m = 0.0
+        epoch_loss_g = 0.0
+        ym_val = torch.tensor([])
+        yg_val = torch.tensor([])
 
         self.model.train()
         metrics = {}

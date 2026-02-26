@@ -82,7 +82,7 @@ def download_mp_semiconductors(
             ],
         )
         if stable_only:
-            search_kwargs["is_stable"] = True
+            search_kwargs["is_stable"] = True  # type: ignore[assignment]
 
         docs = mpr.materials.summary.search(**search_kwargs)
 
