@@ -136,24 +136,32 @@ def main():
     from stable_baselines3 import PPO
 
     from envs.crystal_env import CrystalEnv
-    from models.surrogate import SurrogatePredictor
+    from models.surrogate import MultiTaskSurrogatePredictor, SurrogatePredictor
     from qe_interface.calculator import QECalculator, QEConfig
     from qe_interface.structures import structure_to_fingerprint
 
     # ---- Load surrogate ----
-    # Try full retrained surrogate first, fall back to original bootstrap
-    full_path = Path("data/bootstrap/surrogate_full")
-    bootstrap_path = Path("data/bootstrap/surrogate_bootstrap")
-    if (full_path / "surrogate_weights.pt").exists():
-        surrogate = SurrogatePredictor(input_dim=84, hidden_dim=192, n_layers=4)
-        surrogate.load(str(full_path))
-        logger.info(f"Loaded FULL surrogate: {surrogate.dataset_size} samples")
-    elif (bootstrap_path / "surrogate_weights.pt").exists():
-        surrogate = SurrogatePredictor(input_dim=84, hidden_dim=128, n_layers=3)
-        surrogate.load(str(bootstrap_path))
-        logger.info(f"Loaded bootstrap surrogate: {surrogate.dataset_size} samples")
+    # Use JARVIS multi-task surrogate (152-dim, two-phase trained)
+
+    jarvis_path = Path("data/checkpoints/jarvis_surrogate")
+    if (jarvis_path / "surrogate_weights.pt").exists():
+        surrogate = MultiTaskSurrogatePredictor(input_dim=152, hidden_dim=192)
+        surrogate.load(jarvis_path)
+        logger.info(f"Loaded JARVIS multi-task surrogate: {surrogate.dataset_size} samples")
     else:
-        raise FileNotFoundError("No surrogate. Run bootstrap first.")
+        # Fall back to old bootstrap surrogate
+        full_path = Path("data/bootstrap/surrogate_full")
+        bootstrap_path = Path("data/bootstrap/surrogate_bootstrap")
+        if (full_path / "surrogate_weights.pt").exists():
+            surrogate = SurrogatePredictor(input_dim=84, hidden_dim=192, n_layers=4)
+            surrogate.load(str(full_path))
+            logger.info(f"Loaded FULL surrogate: {surrogate.dataset_size} samples")
+        elif (bootstrap_path / "surrogate_weights.pt").exists():
+            surrogate = SurrogatePredictor(input_dim=84, hidden_dim=128, n_layers=3)
+            surrogate.load(str(bootstrap_path))
+            logger.info(f"Loaded bootstrap surrogate: {surrogate.dataset_size} samples")
+        else:
+            raise FileNotFoundError("No surrogate. Run retrain_jarvis.py first.")
     prior_dataset_size = surrogate.dataset_size
 
     # ---- Load trained agent ----
@@ -174,12 +182,18 @@ def main():
         reward_mode="effective_mass",
     )
 
-    # Try retrained model first, fall back to train_medium
+    # Try JARVIS-PPO first, then retrained, then train_medium
+    ckpt_jarvis = Path("data/checkpoints/ppo_jarvis/ppo_final.zip")
     ckpt_retrain = Path("data/checkpoints/retrain_full/ppo_final.zip")
     ckpt_medium = Path("data/checkpoints/train_medium/ppo_final.zip")
-    ckpt = ckpt_retrain if ckpt_retrain.exists() else ckpt_medium
-    if not ckpt.exists():
-        raise FileNotFoundError(f"No trained model found")
+    if ckpt_jarvis.exists():
+        ckpt = ckpt_jarvis
+    elif ckpt_retrain.exists():
+        ckpt = ckpt_retrain
+    elif ckpt_medium.exists():
+        ckpt = ckpt_medium
+    else:
+        raise FileNotFoundError("No trained PPO model found")
     model = PPO.load(str(ckpt), env=env)
     logger.info(f"Loaded PPO agent from {ckpt}")
 
@@ -238,8 +252,9 @@ def main():
         logger.info(f"\nRetraining surrogate with {n_new} new DFT points "
                      f"({surrogate.dataset_size} total)...")
         surrogate.train(epochs=500, verbose=False)
-        surrogate.save(str(bootstrap_path))
-        logger.info("Updated surrogate saved")
+        save_path = jarvis_path if jarvis_path.exists() else Path("data/checkpoints/jarvis_surrogate")
+        surrogate.save(str(save_path))
+        logger.info(f"Updated surrogate saved to {save_path}")
 
     # ---- Summary ----
     logger.info(f"\n{'='*60}")
