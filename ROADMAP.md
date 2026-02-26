@@ -39,12 +39,21 @@
 
 ### Next Steps
 
-#### Phase 6: SNUMAT Integration (Planned)
-- SNUMAT database has ~10,000 HSE06 effective mass records
-- This is actual m* data (not gap-only like MP) — would directly improve m* head
-- Requires web download from snumat.com, CIF → ASE conversion
+#### Phase 10: DFT Validation of Signed-m\* Candidates (Next)
+- Priority: DFT-validate CAlAsP (m\*=0.002), Sb₂Te₂ (0.067), AsGe (0.015)
+- These are the top 3 by reward from the signed-m\* PPO agent
+- 6/20 eval episodes produced negative m\* predictions — confirms surrogate
+  learned sign direction but has limited accuracy (only 794 bootstrap records
+  carry signed m\*, vs 3,565 JARVIS records that are always positive)
+- Run on Docker QE container: coarse SCF → band structure → signed m\* extraction
 
-#### Phase 9: Quantum Validation via Amazon Braket (Planned)
+#### Phase 11: SNUMAT Integration (Planned)
+- SNUMAT database has ~10,000 HSE06 effective mass records
+- This is actual m\* data (not gap-only like MP) — would directly improve m\* head
+- Requires web download from snumat.com, CIF → ASE conversion
+- Would significantly help signed m\* training (more data with curvature sign)
+
+#### Phase 12: Quantum Validation via Amazon Braket (Planned)
 - Use VQE on small molecular fragments to cross-validate DFT accuracy
 - See dedicated section below
 
@@ -69,6 +78,71 @@
 - Retrained surrogate on 16,359 records with expanded chemistry
 - Retrained PPO with 18 seeds, 14-element palette, stability penalty
 - Full DFT validation loop completed
+
+#### Phase 9: Signed Effective Mass Fix (✅ Complete)
+
+**Problem discovered:** The pipeline was stripping the sign of effective mass
+at 10+ locations, causing the RL agent to exploit surrogate confusion about
+band-inverted (negative curvature) materials for inflated rewards.
+
+**Root causes fixed:**
+- `retrain_jarvis.py`: `np.abs()` on bootstrap DFT data removed all negative
+  curvature values; `m_star <= 0` filters rejected valid negative-m\* records;
+  `has_mstar = y_m > 0` masks treated negative m\* as missing data
+- `crystal_env.py`: Reward function gave `2.0/abs(m*)` for negative m\*
+  (massive reward for band-inverted predictions) instead of penalizing
+
+**Fixes applied (10+ edits across 2 files):**
+- `retrain_jarvis.py`:
+  - Bootstrap loader: `np.abs(data[mstar_key])` → `data[mstar_key].astype(float)`
+  - JARVIS filter: `m_star <= 0` → `m_star == 0` (allow negatives)
+  - Range filter: `m_star > max_mstar` → `abs(m_star) > max_mstar`
+  - Gap-only filter: `m_star > 0` → `m_star != 0`
+  - Fingerprint builder: only `None → 0.0` (preserve negatives)
+  - Valid mask: `y_m > 0.001` → `np.abs(y_m) > 0.001`
+  - All `has_mstar = y_m > 0` → `has_mstar = y_m != 0` (3 locations)
+  - Metrics: `true_m > 0` → `true_m != 0` (2 locations)
+- `crystal_env.py`:
+  - Negative m\*: `2.0/abs(m)` → flat `-2.0` penalty
+  - Positive m\*: `-abs(m)` → `1.0/max(m, 0.01)` (lighter carriers → higher reward)
+  - DFT reward: same pattern
+
+**Stale cache:** Renamed `jarvis_fingerprints.npz` → `jarvis_fingerprints_unsigned.npz`
+to force regeneration with signed values.
+
+**Surrogate retrain results:**
+- m\* correlation: 0.928 → **0.817** (expected — signed targets are harder)
+- Gap accuracy: 96.7% → **96.0%**
+- Normalization: m_mean=0.333, m_std=1.089 (signed range, vs previous unsigned)
+- 16,359 records, 141,890 params, early stopped Phase 1 epoch 115 + Phase 2 epoch 96
+- Model now predicts negative m\* (sample: pred=-1.66, true=-3.44)
+
+**PPO retrain results:**
+- Eval mean: 657.2 → **512.8 ± 193.1** (expected — can't exploit negative m\*)
+- Unique formulas: 11/20 → **20/20** (major improvement in diversity)
+- Metal fraction: 1.88% → 8.84% (explores more broadly)
+- Training: 250k timesteps, ~100 min, avg200 climbed 199→393 over 6,000+ episodes
+
+**Notable discoveries from signed-m\* PPO:**
+
+| Formula | Predicted m\* | Predicted gap (eV) | Reward | Notes |
+|---------|--------------|-------------------|--------|-------|
+| Sb₂Te₂ | 0.067 | 0.548 | 820.6 | Best reward — light carrier chalcogenide |
+| CAlAsP | 0.002 | 1.190 | 581.1 | Near-zero m\* — extremely interesting |
+| AsGe | 0.015 | 1.823 | 524.1 | IV-V binary, very light carrier |
+| AsGa₂N | 0.036 | 1.516 | 506.5 | III-V variant |
+| AlAsGaN | 0.130 | 1.429 | 413.9 | Quaternary III-V |
+| BiInNSb | 0.084 | 1.351 | 392.1 | Bismide quaternary |
+| Al₂PSn | 0.067 | 1.595 | 377.7 | Novel III-IV-V |
+| CAlGeN | 0.125 | 1.791 | 369.2 | Carbon-III-IV-V |
+| Si₂ | 0.250 | 1.162 | 247.7 | Rediscovered silicon |
+| AsGaSn | 0.065 | 1.010 | 118.3 | III-IV-V ternary |
+
+**Key insight:** CAlAsP with m\*=0.002 is a strong DFT validation candidate.
+If confirmed, it would rival InSb (m\*=0.014) as an ultra-low effective mass
+semiconductor — in a non-toxic composition.
+
+Commit: `8d1ed96`
 
 ---
 

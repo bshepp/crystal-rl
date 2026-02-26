@@ -23,14 +23,35 @@ InP, AlN, InSb, GaSb) + 6 supercell (Si₄, GaAs₄, InP₄, SiC₄, Ge₄, AlN�
 
 ## Key Results
 
+### Current (signed m\* pipeline)
+
 | Stage | Metric | Value |
 |-------|--------|-------|
-| Surrogate (two-phase) | m* correlation | 0.928 |
+| Surrogate (two-phase) | m\* correlation | 0.817 |
+| Surrogate (two-phase) | gap accuracy | 96.0% |
+| PPO (250k steps) | eval mean reward | 512.8 ± 193.1 |
+| PPO (250k steps) | unique formulas | 20/20 |
+| PPO (250k steps) | semiconductor rate | ~91% |
+
+### Previous (unsigned m\* — superseded)
+
+| Stage | Metric | Value |
+|-------|--------|-------|
+| Surrogate (two-phase) | m\* correlation | 0.928 |
 | Surrogate (two-phase) | gap accuracy | 96.7% |
 | PPO (250k steps) | eval mean reward | 657.2 |
-| PPO (250k steps) | semiconductor rate | 100% (20/20) |
+| PPO (250k steps) | unique formulas | 11/20 |
 | DFT Validation | candidates converged | 8/8 |
 | DFT Validation | unusual band topology | 6/8 (band inversion) |
+
+> **Why the numbers went "down":** The old pipeline stripped the sign from
+> effective mass everywhere (10+ locations). This inflated surrogate correlation
+> (easier to predict magnitude than sign) and inflated PPO reward (the agent
+> exploited surrogate confusion about band-inverted materials for 2.0/|m\*|
+> reward). The new pipeline preserves signed m\*, penalizes negative m\*
+> (band inversion) with a flat -2.0, and rewards positive m\* via 1/m scaling.
+> Lower numbers, but the physics is now correct — and formula diversity jumped
+> from 11/20 to 20/20.
 
 ## Project Structure
 
@@ -109,6 +130,18 @@ Total parameters: 141,890
 | Bootstrap DFT | 794 | m\* + gap | QE pw.x on AWS EC2 |
 | JARVIS dft_3d | 3,565 | m\* + gap | `avg_elec_mass` + `optb88vdw_bandgap` |
 | Materials Project | 12,990 | gap only | Stable semiconductors, 0.05–11.7 eV |
+
+## Signed Effective Mass
+
+The pipeline preserves the **sign** of effective mass from DFT band curvature:
+- **Positive m\*:** Normal semiconductor band curvature → rewarded via `1/max(m*, 0.01)`
+- **Negative m\*:** Band inversion / topological feature → flat penalty of `-2.0`
+- **Zero m\*:** Metal (no gap) → standard gap penalty applies
+
+The sign carries physical meaning: negative curvature at band extrema indicates
+band inversion, a hallmark of topological materials. Earlier versions stripped
+the sign with `np.abs()` at 10+ points in the pipeline, causing the RL agent to
+exploit surrogate confusion about band-inverted materials for inflated rewards.
 
 ## Fingerprint
 
