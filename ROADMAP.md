@@ -25,16 +25,16 @@
 
 #### Phase 4: Two-Phase Surrogate Training (✅ Complete)
 - **Phase 1:** Train full model on JARVIS+bootstrap only (preserves m* signal)
-- **Phase 2:** Freeze trunk+m* head, fine-tune gap head with 4k MP records
-- Result: **m* corr=0.886, gap acc=95.2%** (vs baseline 0.625 / 90.4%)
-- Model saved: `data/checkpoints/jarvis_surrogate/` (141,890 params, 8,359 records)
+- **Phase 2:** Freeze trunk+m* head, fine-tune gap head with 12k MP records
+- Result: **m* corr=0.928, gap acc=96.7%** (vs baseline 0.625 / 90.4%)
+- Model saved: `data/checkpoints/jarvis_surrogate/` (141,890 params, 16,359 records)
 
 #### Phase 5: PPO Training with Improved Surrogate (✅ Complete)
-- 250k timesteps, 6,259 episodes in 105 min
-- Q1→Q4 reward: 183.6 → 585.4 (+401.8)
-- **Eval mean: 655.4** (vs prior 478.3 — 37% improvement)
-- 20/20 evaluation episodes produced semiconductors
-- Best single episode: 2873.5
+- 250k timesteps, ~88 min training
+- Q1→Q4 reward: 156.3 → 454.4 (+298.2)
+- **Eval mean: 657.2** ±386.5
+- 20/20 evaluation episodes produced semiconductors (11 unique formulas)
+- Best formulas: GaP, In₂Sb₂, InP, Si₂, CSi, As₂In₂, InSb, Ge₄, C₂, AsGa, AlAs
 - Model saved: `data/checkpoints/ppo_jarvis/ppo_final.zip`
 
 ### Next Steps
@@ -44,10 +44,31 @@
 - This is actual m* data (not gap-only like MP) — would directly improve m* head
 - Requires web download from snumat.com, CIF → ASE conversion
 
-#### Phase 7: DFT Validation of Discovered Candidates
-- Run Quantum ESPRESSO on top PPO-discovered structures
-- Compare surrogate predictions vs actual DFT band gap and effective mass
-- Quantify prediction accuracy on novel (out-of-distribution) materials
+#### Phase 9: Quantum Validation via Amazon Braket (Planned)
+- Use VQE on small molecular fragments to cross-validate DFT accuracy
+- See dedicated section below
+
+### Completed (Post-Pipeline)
+
+#### Phase 6b: Feature Expansion (✅ Complete)
+- Expanded element palette from 10 to 14 species (+Sn, Sb, Bi, Se, Te)
+- Added 6 supercell seeds (Si₄, GaAs₄, InP₄, SiC₄, Ge₄, AlN₄) → 18 total seeds
+- Added stability discount penalty for highly strained structures
+- Added unusual topology logger for band-inverted candidates
+
+#### Phase 7: DFT Validation of Discovered Candidates (✅ Complete)
+- Ran Quantum ESPRESSO on 8 top PPO-discovered structures
+- **All 8 candidates converged** in DFT (QE pw.x)
+- **6 of 8 showed unusual band topology** (negative DFT effective mass → band inversion)
+- Surrogate MAE vs DFT: 1.492 mₑ, correlation 0.057
+- Candidates with inverted bands: As₂Ga₂, Ge₄, Ge₂, AsIn, AsGa, As₂In₂
+- Normal candidates: GaP (DFT m*=+1.174, gap=0.229 eV), Si₄ (DFT m*=+1.750)
+- Results saved: `data/validation/validation_report.json`, `data/validation/unusual_topology.json`
+
+#### Phase 8: Pipeline Retrain with Expanded Chemistry (✅ Complete)
+- Retrained surrogate on 16,359 records with expanded chemistry
+- Retrained PPO with 18 seeds, 14-element palette, stability penalty
+- Full DFT validation loop completed
 
 ---
 
@@ -147,7 +168,7 @@ InN, then band gaps and effective masses computed with PBE are also wrong.
 ## Pipeline Overview
 
 ```
-Seeds (10 crystals) → Bootstrap (perturb/swap) → DFT (QE pw.x) → Dataset
+Seeds (18 crystals) → Bootstrap (perturb/swap) → DFT (QE pw.x) → Dataset
     → Train Surrogate MLP → RL Agent (PPO) → Novel Candidates
     → DFT Validation → [Braket Quantum Validation] → Publish
 ```

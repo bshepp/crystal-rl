@@ -8,7 +8,7 @@ to search for novel crystal structures with optimal electronic properties
 ## Architecture
 
 ```
-Seeds (10 crystals) → Bootstrap DFT (QE pw.x) → Dataset (794+ records)
+Seeds (18 crystals) → Bootstrap DFT (QE pw.x) → Dataset (794+ records)
     ↓                                               ↓
 JARVIS-DFT (3,565 m* records)  ──────────→  Train MultiTaskMLP Surrogate
 Materials Project (12,990 gap records) ──→       ↓
@@ -17,14 +17,20 @@ Materials Project (12,990 gap records) ──→       ↓
                                           Top candidates → DFT Validation
 ```
 
+14-element palette: Si, Ge, C, Ga, As, Al, In, P, N, Sn, Sb, Bi, Se, Te.  
+18 seeds: 12 two-atom (Si, Ge, C-diamond, GaAs, AlAs, InAs, GaP, SiC-3C,
+InP, AlN, InSb, GaSb) + 6 supercell (Si₄, GaAs₄, InP₄, SiC₄, Ge₄, AlN₄).
+
 ## Key Results
 
 | Stage | Metric | Value |
 |-------|--------|-------|
-| Surrogate (two-phase) | m* correlation | 0.886 |
-| Surrogate (two-phase) | gap accuracy | 95.2% |
-| PPO (250k steps) | eval mean reward | 655.4 |
+| Surrogate (two-phase) | m* correlation | 0.928 |
+| Surrogate (two-phase) | gap accuracy | 96.7% |
+| PPO (250k steps) | eval mean reward | 657.2 |
 | PPO (250k steps) | semiconductor rate | 100% (20/20) |
+| DFT Validation | candidates converged | 8/8 |
+| DFT Validation | unusual band topology | 6/8 (band inversion) |
 
 ## Project Structure
 
@@ -79,7 +85,7 @@ PYTHONPATH=. python scripts/train_ppo_jarvis.py --timesteps 250000
 
 ```bash
 docker compose build
-docker compose run --rm qe-rl python -m scripts.train_medium
+docker compose run --rm qe-rl python3 -m scripts.train_medium
 ```
 
 ## Surrogate Model
@@ -89,11 +95,11 @@ and band gap prediction. Trained with two-phase approach:
 
 1. **Phase 1:** Full model trained on JARVIS + bootstrap data (all records
    have both m\* and gap labels) — optimizes m\* correlation
-2. **Phase 2:** Freeze trunk + m\* head, fine-tune gap head with 4,000
+2. **Phase 2:** Freeze trunk + m\* head, fine-tune gap head with 12,000
    Materials Project semiconductor records (gap-only labels) — boosts gap
    accuracy without degrading m\* performance
 
-Architecture: `152-in → [192×SiLU+LN+Drop]×3 → head_m*(192→96→1) + head_gap(192→96→1)`
+Architecture: `152-in → [192×SiLU+LN+Drop]×4 → head_m*(192→96→1) + head_gap(192→96→1)`
 Total parameters: 141,890
 
 ## Data Sources
