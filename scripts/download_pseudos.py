@@ -33,6 +33,11 @@ PSEUDOS = {
     "Al.pbe-n-kjpaw_psl.1.0.0.UPF": "https://pseudopotentials.quantum-espresso.org/upf_files/Al.pbe-n-kjpaw_psl.1.0.0.UPF",
     "B.pbe-n-kjpaw_psl.1.0.0.UPF": "https://pseudopotentials.quantum-espresso.org/upf_files/B.pbe-n-kjpaw_psl.1.0.0.UPF",
     "O.pbe-n-kjpaw_psl.1.0.0.UPF": "https://pseudopotentials.quantum-espresso.org/upf_files/O.pbe-n-kjpaw_psl.1.0.0.UPF",
+    # Extended palette: V-group pnictides and VI-group chalcogenides
+    "Sb.pbe-n-kjpaw_psl.1.0.0.UPF": "https://pseudopotentials.quantum-espresso.org/upf_files/Sb.pbe-n-kjpaw_psl.1.0.0.UPF",
+    "Bi.pbe-dn-kjpaw_psl.1.0.0.UPF": "https://pseudopotentials.quantum-espresso.org/upf_files/Bi.pbe-dn-kjpaw_psl.1.0.0.UPF",
+    "Se.pbe-dn-kjpaw_psl.1.0.0.UPF": "https://pseudopotentials.quantum-espresso.org/upf_files/Se.pbe-dn-kjpaw_psl.1.0.0.UPF",
+    "Te.pbe-n-rrkjus_psl.1.0.0.UPF": "https://pseudopotentials.quantum-espresso.org/upf_files/Te.pbe-n-rrkjus_psl.1.0.0.UPF",
 }
 
 

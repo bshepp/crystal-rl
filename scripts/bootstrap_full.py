@@ -47,8 +47,12 @@ def main():
     qe = QECalculator(config)
 
     # All available seeds — 10 base structures + 2 perturbations each = 30 total
-    all_seeds = ["Si", "Ge", "C-diamond", "GaAs", "AlAs", "InAs",
-                 "GaP", "SiC-3C", "InP", "AlN"]
+    all_seeds = [
+        "Si", "Ge", "C-diamond", "GaAs", "AlAs", "InAs",
+        "GaP", "SiC-3C", "InP", "AlN",
+        "InSb", "GaSb",
+        "GaAs-4", "InAs-4", "InSb-4", "GaSb-4", "Si-4", "Ge-4",
+    ]
     n_perturbations = 2
     rng = np.random.default_rng(2024)
 

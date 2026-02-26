@@ -27,9 +27,11 @@ def make_seed_structure(name: str) -> Atoms:
         ASE Atoms object.
     """
     structures = {
+        # 2-atom diamond seeds
         "Si": lambda: bulk("Si", "diamond", a=5.431),
         "Ge": lambda: bulk("Ge", "diamond", a=5.658),
         "C-diamond": lambda: bulk("C", "diamond", a=3.567),
+        # 2-atom zincblende seeds
         "GaAs": lambda: bulk("GaAs", "zincblende", a=5.653),
         "AlAs": lambda: bulk("AlAs", "zincblende", a=5.661),
         "InAs": lambda: bulk("InAs", "zincblende", a=6.058),
@@ -37,6 +39,17 @@ def make_seed_structure(name: str) -> Atoms:
         "SiC-3C": lambda: bulk("SiC", "zincblende", a=4.360),
         "InP": lambda: bulk("InP", "zincblende", a=5.869),
         "AlN": lambda: bulk("AlN", "zincblende", a=4.380),
+        # New: antimonides for low-m* exploration (InSb = 0.014 m_e)
+        "InSb": lambda: bulk("InSb", "zincblende", a=6.479),
+        "GaSb": lambda: bulk("GaSb", "zincblende", a=6.096),
+        # 4-atom supercells for ternary exploration
+        # (swap 1 of 4 atoms → A₀.₅B₀.₅X or AB₀.₅X₀.₅ etc.)
+        "GaAs-4": lambda: bulk("GaAs", "zincblende", a=5.653).repeat((2, 1, 1)),
+        "InAs-4": lambda: bulk("InAs", "zincblende", a=6.058).repeat((2, 1, 1)),
+        "InSb-4": lambda: bulk("InSb", "zincblende", a=6.479).repeat((2, 1, 1)),
+        "GaSb-4": lambda: bulk("GaSb", "zincblende", a=6.096).repeat((2, 1, 1)),
+        "Si-4": lambda: bulk("Si", "diamond", a=5.431).repeat((2, 1, 1)),
+        "Ge-4": lambda: bulk("Ge", "diamond", a=5.658).repeat((2, 1, 1)),
     }
 
     if name not in structures:

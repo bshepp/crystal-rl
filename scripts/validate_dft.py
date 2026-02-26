@@ -46,6 +46,9 @@ class Candidate:
     dft_converged: bool = False
     dft_time_s: float = 0.0
 
+    # Band topology flag: True if DFT m* is negative (inverted curvature)
+    unusual_topology: bool = False
+
 
 def generate_candidates(model, env, surrogate, n_episodes: int = 30) -> list[tuple[Candidate, "Atoms"]]:
     """Run trained agent episodes, collect all final structures with atoms."""
@@ -118,6 +121,14 @@ def validate_with_dft(candidate: Candidate, qe, atoms) -> Candidate:
         candidate.dft_m_electron = props.effective_mass_electron
         candidate.dft_m_hole = props.effective_mass_hole
 
+        # Flag unusual band topology (negative effective mass = inverted curvature)
+        if props.min_effective_mass is not None and props.min_effective_mass < 0:
+            candidate.unusual_topology = True
+            logger.info(
+                f"  ⚠ Unusual band topology: {candidate.formula} has "
+                f"negative DFT m*={props.min_effective_mass:+.4f}"
+            )
+
     return candidate
 
 
@@ -146,12 +157,17 @@ def main():
     prior_dataset_size = surrogate.dataset_size
 
     # ---- Load trained agent ----
-    all_seeds = ["Si", "Ge", "C-diamond", "GaAs", "AlAs", "InAs",
-                 "GaP", "SiC-3C", "InP", "AlN"]
+    all_seeds = [
+        "Si", "Ge", "C-diamond", "GaAs", "AlAs", "InAs",
+        "GaP", "SiC-3C", "InP", "AlN",
+        "InSb", "GaSb",
+        "GaAs-4", "InAs-4", "InSb-4", "GaSb-4", "Si-4", "Ge-4",
+    ]
 
     env = CrystalEnv(
         seed_structure=all_seeds,
-        species_palette=["Si", "Ge", "C", "Ga", "As", "Al", "In", "N", "P"],
+        species_palette=["Si", "Ge", "C", "Sn", "N", "P", "As", "Ga", "In", "Al",
+                         "Sb", "Bi", "Se", "Te"],
         max_steps=40,
         use_surrogate=True,
         surrogate_model=surrogate,
@@ -270,12 +286,35 @@ def main():
             "dft_m_hole": c.dft_m_hole,
             "dft_converged": c.dft_converged,
             "dft_time_s": c.dft_time_s,
+            "unusual_topology": c.unusual_topology,
             "actions": c.actions_taken,
         }
         report.append(entry)
     with open(out / "validation_report.json", "w") as f:
         json.dump(report, f, indent=2, default=str)
     logger.info(f"\nReport saved to {out}/validation_report.json")
+
+    # Save unusual band topology candidates separately
+    unusual = [c for c in validated if c.unusual_topology]
+    if unusual:
+        topology_report = []
+        for c in unusual:
+            topology_report.append({
+                "formula": c.formula,
+                "seed": c.seed,
+                "dft_m_min": c.dft_m_min,
+                "dft_m_electron": c.dft_m_electron,
+                "dft_m_hole": c.dft_m_hole,
+                "dft_band_gap": c.dft_band_gap,
+                "surrogate_m_star": c.surrogate_m_star,
+                "actions": c.actions_taken,
+            })
+        with open(out / "unusual_topology.json", "w") as f:
+            json.dump(topology_report, f, indent=2, default=str)
+        logger.info(
+            f"Found {len(unusual)} candidates with unusual band topology "
+            f"→ {out}/unusual_topology.json"
+        )
 
 
 if __name__ == "__main__":

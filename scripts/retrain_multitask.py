@@ -216,11 +216,14 @@ def train_ppo(surrogate, total_timesteps: int = 250_000):
     all_seeds = [
         "Si", "Ge", "C-diamond", "GaAs", "AlAs",
         "InAs", "GaP", "SiC-3C", "InP", "AlN",
+        "InSb", "GaSb",
+        "GaAs-4", "InAs-4", "InSb-4", "GaSb-4", "Si-4", "Ge-4",
     ]
 
     env = CrystalEnv(
         seed_structure=all_seeds,
-        species_palette=["Si", "Ge", "C", "Ga", "As", "Al", "In", "N", "P"],
+        species_palette=["Si", "Ge", "C", "Sn", "N", "P", "As", "Ga", "In", "Al",
+                         "Sb", "Bi", "Se", "Te"],
         max_steps=40,
         use_surrogate=True,
         surrogate_model=surrogate,

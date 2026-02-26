@@ -27,11 +27,16 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Species palette for swaps
-SPECIES_PALETTE = ["Si", "Ge", "C", "Ga", "As", "Al", "In", "N", "P"]
+SPECIES_PALETTE = [
+    "Si", "Ge", "C", "Sn", "N", "P", "As", "Ga", "In", "Al",
+    "Sb", "Bi", "Se", "Te",
+]
 
 ALL_SEEDS = [
     "Si", "Ge", "C-diamond", "GaAs", "AlAs",
     "InAs", "GaP", "SiC-3C", "InP", "AlN",
+    "InSb", "GaSb",
+    "GaAs-4", "InAs-4", "InSb-4", "GaSb-4", "Si-4", "Ge-4",
 ]
 
 # Perturbation schedule: (label, pos_amplitude, lat_amplitude, n_species_swaps)

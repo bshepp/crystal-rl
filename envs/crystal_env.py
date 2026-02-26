@@ -10,6 +10,7 @@ The environment operates in two modes:
 Reward shaping:
   - Primary reward: 1/m* (lower effective mass → higher reward)
   - Metal penalty: -3.0 if predicted band gap < 0.05 eV
+  - Soft stability discount: reward *= exp(-alpha * instability_score)
 """
 
 from __future__ import annotations
@@ -19,6 +20,7 @@ from typing import Any, Optional
 
 import gymnasium as gym
 import numpy as np
+from ase.data import atomic_numbers
 from gymnasium import spaces
 
 from qe_interface.calculator import QECalculator, QEConfig, QEResult
@@ -33,6 +35,62 @@ from qe_interface.structures import (
 )
 
 logger = logging.getLogger(__name__)
+
+# Pauling electronegativities for stability estimation
+_ELECTRONEGATIVITY = {
+    "Si": 1.90, "Ge": 2.01, "C": 2.55, "Sn": 1.96, "N": 3.04,
+    "P": 2.19, "As": 2.18, "Ga": 1.81, "In": 1.78, "Al": 1.61,
+    "Sb": 2.05, "Bi": 2.02, "Se": 2.55, "Te": 2.10,
+    "B": 2.04, "O": 3.44,
+}
+
+# Covalent radii (Angstrom) for size mismatch estimation
+_COVALENT_RADIUS = {
+    "Si": 1.11, "Ge": 1.20, "C": 0.77, "Sn": 1.39, "N": 0.71,
+    "P": 1.07, "As": 1.19, "Ga": 1.22, "In": 1.42, "Al": 1.21,
+    "Sb": 1.39, "Bi": 1.48, "Se": 1.20, "Te": 1.38,
+    "B": 0.82, "O": 0.66,
+}
+
+
+def estimate_instability(symbols: list[str]) -> float:
+    """Lightweight instability score based on composition.
+
+    Uses electronegativity difference and size mismatch as proxies
+    for formation energy / hull distance.  Returns a dimensionless
+    score ≥ 0 where 0 = perfectly matched (e.g. elemental crystals)
+    and higher = more speculative compositions.
+
+    The score is NOT a hard filter — it is used as a soft discount
+    on the reward so the agent can still propose metastable things.
+    """
+    unique = list(set(symbols))
+    if len(unique) <= 1:
+        return 0.0  # elemental — trivially stable
+
+    # Average pairwise electronegativity difference
+    en_diffs = []
+    rad_diffs = []
+    for i, a in enumerate(unique):
+        for b in unique[i + 1:]:
+            en_a = _ELECTRONEGATIVITY.get(a, 2.0)
+            en_b = _ELECTRONEGATIVITY.get(b, 2.0)
+            en_diffs.append(abs(en_a - en_b))
+            rad_a = _COVALENT_RADIUS.get(a, 1.2)
+            rad_b = _COVALENT_RADIUS.get(b, 1.2)
+            rad_diffs.append(abs(rad_a - rad_b) / max(rad_a, rad_b))
+
+    # Combine: large EN diff (ionic) + large size mismatch = less likely to
+    # form a stable tetrahedral semiconductor.  Weight EN more heavily.
+    en_score = np.mean(en_diffs) if en_diffs else 0.0
+    rad_score = np.mean(rad_diffs) if rad_diffs else 0.0
+
+    # Penalize very unusual element counts (e.g. 4 different species in 4 atoms)
+    n_species = len(unique)
+    n_atoms = len(symbols)
+    diversity_penalty = max(0.0, (n_species / n_atoms) - 0.5) * 0.5
+
+    return float(en_score + 0.5 * rad_score + diversity_penalty)
 
 
 class CrystalEnv(gym.Env):
@@ -73,6 +131,7 @@ class CrystalEnv(gym.Env):
         fingerprint_size: int = 64,
         reward_mode: str = "effective_mass",
         render_mode: Optional[str] = None,
+        stability_alpha: float = 0.3,
     ):
         """Initialize the crystal RL environment.
 
@@ -86,6 +145,8 @@ class CrystalEnv(gym.Env):
             fingerprint_size: Size of the structural fingerprint vector.
             reward_mode: What property to optimize.
             render_mode: Gymnasium render mode.
+            stability_alpha: Strength of soft stability discount (0 = off).
+                Reward is multiplied by exp(-alpha * instability_score).
         """
         super().__init__()
 
@@ -97,13 +158,17 @@ class CrystalEnv(gym.Env):
         else:
             self.seed_structure_names = [seed_structure]
         self.seed_structure_name = self.seed_structure_names[0]  # backward compat
-        self.species_palette = species_palette or ["Si", "Ge", "C", "Ga", "As"]
+        self.species_palette = species_palette or [
+            "Si", "Ge", "C", "Sn", "N", "P", "As", "Ga", "In", "Al",
+            "Sb", "Bi", "Se", "Te",
+        ]
         self.max_steps = max_steps
         self.use_surrogate = use_surrogate
         self.surrogate_model = surrogate_model
         self.fingerprint_size = fingerprint_size
         self.reward_mode = reward_mode
         self.render_mode = render_mode
+        self.stability_alpha = stability_alpha
 
         # QE calculator
         self.qe = QECalculator(qe_config or QEConfig())
@@ -148,10 +213,31 @@ class CrystalEnv(gym.Env):
     def _compute_reward(self) -> tuple[float, dict]:
         """Evaluate the current structure and compute reward.
 
+        Applies soft stability discount: reward *= exp(-alpha * instability).
+
         Returns:
             Tuple of (reward, info_dict).
         """
         info = {}
+        reward = self._compute_raw_reward(info)
+
+        # Soft stability discount — penalizes speculative compositions
+        # without hard-blocking them (metastable things can still score well)
+        assert self.atoms is not None
+        if self.stability_alpha > 0:
+            symbols = list(self.atoms.get_chemical_symbols())
+            instability = estimate_instability(symbols)
+            stability_factor = float(np.exp(-self.stability_alpha * instability))
+            info["instability_score"] = instability
+            info["stability_factor"] = stability_factor
+            if reward > 0:
+                reward *= stability_factor
+            # Don't amplify penalties — only discount positive rewards
+
+        return reward, info
+
+    def _compute_raw_reward(self, info: dict) -> float:
+        """Compute the raw reward before stability discount."""
 
         if self.use_surrogate and self.surrogate_model is not None:
             # Fast surrogate evaluation — same shaping as DFT mode
@@ -180,7 +266,7 @@ class CrystalEnv(gym.Env):
                 reward -= 3.0  # strong penalty for metals
                 info["metal_penalty"] = True
 
-            return reward, info
+            return reward
 
         # Real DFT evaluation
         scf_result = self.qe.run_scf(self.atoms)
@@ -189,7 +275,7 @@ class CrystalEnv(gym.Env):
 
         if not scf_result.converged:
             # Penalty for non-converging structures
-            return -10.0, info
+            return -10.0
 
         info["energy"] = scf_result.energy
         info["max_force"] = float(np.max(np.abs(scf_result.forces)))
@@ -220,7 +306,7 @@ class CrystalEnv(gym.Env):
                     else:
                         reward = -abs(m)
                     info["min_effective_mass"] = m
-                    return reward, info
+                    return reward
 
             # Bands didn't work; fall back to energy-based reward
             reward = -abs(scf_result.energy) / len(self.atoms)
@@ -232,7 +318,7 @@ class CrystalEnv(gym.Env):
         else:
             raise ValueError(f"Unknown reward mode: {self.reward_mode}")
 
-        return reward, info
+        return reward
 
     def _apply_action(self, action: int) -> None:
         """Apply the chosen action to modify the structure."""

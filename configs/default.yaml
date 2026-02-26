@@ -79,9 +79,15 @@ species_palette:
   - "Ga"
   - "In"
   - "Al"
+  # Extended palette: antimony, bismuth, selenium, tellurium
+  - "Sb"
+  - "Bi"
+  - "Se"
+  - "Te"
 
-# Initial structures to seed exploration (10 crystal families)
+# Initial structures to seed exploration
 seed_structures:
+  # 2-atom diamond seeds
   - name: "silicon-diamond"
     formula: "Si"
     spacegroup: 227
@@ -91,6 +97,7 @@ seed_structures:
   - name: "carbon-diamond"
     formula: "C-diamond"
     spacegroup: 227
+  # 2-atom zincblende seeds
   - name: "gaas-zincblende"
     formula: "GaAs"
     spacegroup: 216
@@ -112,3 +119,29 @@ seed_structures:
   - name: "aln-wurtzite"
     formula: "AlN"
     spacegroup: 186
+  # New: antimonides (InSb = 0.014 m_e — benchmark for low-m*)
+  - name: "insb-zincblende"
+    formula: "InSb"
+    spacegroup: 216
+  - name: "gasb-zincblende"
+    formula: "GaSb"
+    spacegroup: 216
+  # 4-atom supercells for ternary exploration
+  - name: "gaas-supercell"
+    formula: "GaAs-4"
+    atoms: 4
+  - name: "inas-supercell"
+    formula: "InAs-4"
+    atoms: 4
+  - name: "insb-supercell"
+    formula: "InSb-4"
+    atoms: 4
+  - name: "gasb-supercell"
+    formula: "GaSb-4"
+    atoms: 4
+  - name: "si-supercell"
+    formula: "Si-4"
+    atoms: 4
+  - name: "ge-supercell"
+    formula: "Ge-4"
+    atoms: 4
