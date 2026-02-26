@@ -115,4 +115,4 @@ Total parameters: 141,890
 
 ## License
 
-MIT
+This project is licensed under the [MIT License](LICENSE).
