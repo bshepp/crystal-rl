@@ -31,11 +31,14 @@ RUN wget -q https://github.com/QEF/q-e/archive/refs/tags/qe-7.3.1.tar.gz \
     && tar xzf qe-7.3.1.tar.gz \
     && cd q-e-qe-7.3.1 \
     && ./configure --enable-openmp MPIF90=mpif90 \
-    && make -j$(nproc) pw pp bands \
+    && make -j$(nproc) pw pp \
     && mkdir -p /opt/qe-7.3.1/bin \
     && cp bin/* /opt/qe-7.3.1/bin/ \
     && cd / \
     && rm -rf /opt/qe-7.3.1.tar.gz /opt/q-e-qe-7.3.1
+# Note: `bands.x` is built as part of the `pp` target in QE 7.3.1, not as a
+# separate `bands` target. Older QE versions had a standalone `bands` target;
+# specifying it here causes `make: *** No rule to make target 'bands'`.
 
 ENV PATH="/opt/qe-7.3.1/bin:${PATH}"
 ENV ESPRESSO_PSEUDO="/opt/pseudopotentials"
