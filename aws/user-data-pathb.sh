@@ -39,10 +39,16 @@ resolve_run_id() {
     echo "Using RUN_ID from environment: $RUN_ID"
     return
   fi
-  # Probe S3 for most recent run that is not COMPLETE
+  # Probe S3 for most recent run that is not COMPLETE.
+  # NB: every pipeline element here is `|| true`-guarded because we run with
+  # `set -eo pipefail` and an empty `grep` exits 1, which would abort the
+  # whole script the very first time (when runs/ is empty).
   local latest
-  latest=$(aws s3 ls "s3://${BUCKET}/runs/" --region "$REGION" \
-    | awk '{print $2}' | grep '^pathb-' | sort -r | head -5)
+  latest=$( { aws s3 ls "s3://${BUCKET}/runs/" --region "$REGION" 2>/dev/null \
+    | awk '{print $2}' \
+    | grep '^pathb-' \
+    | sort -r \
+    | head -5 ; } || true )
   for candidate in $latest; do
     candidate=${candidate%/}
     local prior_status
