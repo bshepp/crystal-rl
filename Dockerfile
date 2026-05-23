@@ -67,8 +67,13 @@ RUN pip3 install --no-cache-dir \
     tqdm \
     pytest \
     jarvis-tools \
-    mp-api \
+    "mp-api<0.46" \
+    "emmet-core<0.86" \
     requests
+# Pins on mp-api / emmet-core: the unpinned `latest` resolved to
+# emmet-core 0.86.0rc1, which imports `typing.NotRequired` (Python 3.11+).
+# This base image is Python 3.10 from the Ubuntu 22.04 `python3` package;
+# the pins keep us on the last stable line that supports 3.10.
 
 # Working directory
 WORKDIR /workspace
