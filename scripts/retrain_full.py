@@ -1,5 +1,16 @@
 #!/usr/bin/env python3
-"""Retrain surrogate on full 794-point AWS bootstrap dataset + DFT validation data.
+"""DEPRECATED — older retrain script using 84-dim fingerprints and single-task surrogate.
+
+Superseded by `scripts/retrain_jarvis.py` (Phase 8 onwards), which uses
+156-dim fingerprints, the multi-task MultiTaskMLP (m\* + gap heads),
+two-phase training on JARVIS + bootstrap + Materials Project, and
+preserves signed effective mass throughout. Kept for historical reference.
+
+----------------------------------------------------------------------
+
+Original docstring:
+
+Retrain surrogate on full 794-point AWS bootstrap dataset + DFT validation data.
 
 Then retrain PPO agent against the improved surrogate.
 

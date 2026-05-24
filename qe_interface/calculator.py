@@ -75,6 +75,10 @@ class QECalculator:
         "In": "In.pbe-dn-rrkjus_psl.1.0.0.UPF",
         "Sn": "Sn.pbe-dn-kjpaw_psl.1.0.0.UPF",
         "Al": "Al.pbe-n-kjpaw_psl.1.0.0.UPF",
+        "Sb": "Sb.pbe-n-kjpaw_psl.1.0.0.UPF",
+        "Bi": "Bi.pbe-dn-kjpaw_psl.1.0.0.UPF",
+        "Se": "Se.pbe-dn-kjpaw_psl.1.0.0.UPF",
+        "Te": "Te.pbe-n-rrkjus_psl.1.0.0.UPF",
     }
 
     # Valence electrons per element in the SSSP pseudopotentials above
@@ -91,6 +95,10 @@ class QECalculator:
         "In": 13,  # In.pbe-dn: 4d¹⁰ 5s² 5p¹
         "Sn": 14,  # Sn.pbe-dn: 4d¹⁰ 5s² 5p²
         "Al": 3,
+        "Sb": 5,   # Sb.pbe-n: 5s² 5p³
+        "Bi": 15,  # Bi.pbe-dn: 5d¹⁰ 6s² 6p³ (d in valence)
+        "Se": 16,  # Se.pbe-dn: 3d¹⁰ 4s² 4p⁴ (d in valence)
+        "Te": 6,   # Te.pbe-n: 5s² 5p⁴
     }
 
     def get_n_valence_electrons(self, atoms: Atoms) -> int:

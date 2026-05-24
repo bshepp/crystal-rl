@@ -1,5 +1,16 @@
 #!/usr/bin/env python3
-"""Monitor AWS bootstrap run and retrieve results.
+"""Monitor a Phase-1 AWS bootstrap run and retrieve its S3 results.
+
+Historical context: this script targets a specific EC2 instance
+(`INSTANCE_ID` below) that ran the original 794-point bootstrap DFT job in
+February 2026 (see ROADMAP Phase 1). That instance has long since self-
+terminated; the script's status-check path is now mostly useful as a
+template for monitoring future bootstrap-style runs.
+
+The `--download` and `--log` paths still work against the S3 bucket and
+remain useful for pulling historical bootstrap artifacts.
+
+To reuse for a new run, edit `INSTANCE_ID` (and optionally `BUCKET`).
 
 Usage:
     python aws/check_bootstrap.py              # Check status
@@ -13,6 +24,7 @@ import os
 import subprocess
 import sys
 
+# Original Phase-1 bootstrap instance (self-terminated Feb 2026, kept for record).
 INSTANCE_ID = "i-0d3ff917412bd0f51"
 BUCKET = "rl-materials-bootstrap-290318879194"
 REGION = "us-east-1"

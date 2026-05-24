@@ -239,11 +239,17 @@ def load_bootstrap_data(
         boot_dir / "all_results.npz",
     ]
 
+    # Expected fingerprint dim from current structures.py palette
+    from qe_interface.structures import structure_to_fingerprint
+    from ase import Atoms
+    _probe = Atoms("Si", positions=[[0, 0, 0]], cell=[3, 3, 3], pbc=True)
+    expected_dim = len(structure_to_fingerprint(_probe))
+
     for path in candidates:
         if path.exists():
             data = np.load(path)
             fps = data.get("fingerprints")
-            if fps is not None and fps.shape[1] == 152:
+            if fps is not None and fps.shape[1] == expected_dim:
                 mstar_key = "targets_mstar" if "targets_mstar" in data else "targets"
                 gap_key = "targets_gap" if "targets_gap" in data else None
                 y_m = data[mstar_key].astype(float)  # preserve sign from DFT curvature
@@ -252,8 +258,10 @@ def load_bootstrap_data(
                 valid = (np.abs(y_m) > 0.001) & (np.abs(y_m) < 50.0) & np.isfinite(y_m) & np.isfinite(y_g)
                 log.info(f"  Loaded bootstrap from {path}: {fps.shape[0]} records ({valid.sum()} valid), {fps.shape[1]}d")
                 return fps[valid], y_m[valid], y_g[valid]
+            elif fps is not None:
+                log.warning(f"  Found {path} but fingerprint dim {fps.shape[1]} != expected {expected_dim} — skipping (regenerate with current palette)")
 
-    log.warning(f"No 152-dim bootstrap data found in {boot_dir}")
+    log.warning(f"No {expected_dim}-dim bootstrap data found in {boot_dir}")
     return None, None, None
 
 
@@ -420,7 +428,7 @@ def train_multitask(
     X_val: np.ndarray,
     y_m_val: np.ndarray,
     y_g_val: np.ndarray,
-    input_dim: int = 152,
+    input_dim: int = 156,
     hidden_dim: int = 192,
     n_layers: int = 4,
     lr: float = 5e-4,

@@ -1,4 +1,18 @@
-"""RL Training loop using Stable-Baselines3.
+"""DEPRECATED — early all-in-one training/retraining loop.
+
+Superseded by the split-script pipeline used since Phase 8:
+  - `scripts/retrain_jarvis.py` for two-phase surrogate training
+    (JARVIS + bootstrap + Materials Project, multi-task, signed m\*)
+  - `scripts/train_ppo_jarvis.py` for PPO against the current surrogate
+  - `scripts/validate_dft.py` for DFT validation of top PPO candidates
+
+Kept for historical reference only. Do not run for new experiments.
+
+----------------------------------------------------------------------
+
+Original docstring:
+
+RL Training loop using Stable-Baselines3.
 
 Orchestrates the two-tier training:
   1. Collect DFT data via random/initial policy

@@ -187,7 +187,7 @@ def main():
 
     surrogate_dir = Path(args.surrogate_dir)
     logger.info(f"Loading JARVIS surrogate from {surrogate_dir}...")
-    surrogate = MultiTaskSurrogatePredictor(input_dim=152, hidden_dim=192)
+    surrogate = MultiTaskSurrogatePredictor(input_dim=156, hidden_dim=192)
     surrogate.load(surrogate_dir)
     logger.info(f"  Loaded: {surrogate.dataset_size} samples")
 

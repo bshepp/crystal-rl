@@ -123,7 +123,9 @@ to force regeneration with signed values.
 - Metal fraction: 1.88% → 8.84% (explores more broadly)
 - Training: 250k timesteps, ~100 min, avg200 climbed 199→393 over 6,000+ episodes
 
-**Notable discoveries from signed-m\* PPO:**
+**Top candidates from signed-m\* PPO** (surrogate predictions — pending DFT
+validation in Phase 10; the columns below are model outputs, not measured or
+DFT-computed values):
 
 | Formula | Predicted m\* | Predicted gap (eV) | Reward | Notes |
 |---------|--------------|-------------------|--------|-------|
@@ -138,9 +140,14 @@ to force regeneration with signed values.
 | Si₂ | 0.250 | 1.162 | 247.7 | Rediscovered silicon |
 | AsGaSn | 0.065 | 1.010 | 118.3 | III-IV-V ternary |
 
-**Key insight:** CAlAsP with m\*=0.002 is a strong DFT validation candidate.
-If confirmed, it would rival InSb (m\*=0.014) as an ultra-low effective mass
-semiconductor — in a non-toxic composition.
+**Key insight:** CAlAsP is the top DFT-validation candidate from this PPO run.
+The surrogate's predicted m\*=0.002 is, of course, a model output — it has
+not been validated by DFT, may reflect surrogate extrapolation outside its
+training distribution, and is not directly comparable to measured values
+without DFT confirmation. Phase 10 will run PBE DFT on CAlAsP (and on Sb₂Te₂,
+AsGe) to see whether the prediction holds up. If DFT corroborates a small
+positive m\* — say, sub-0.05 m_e — that would put CAlAsP in the same regime
+as known light-carrier semiconductors and warrant follow-up work.
 
 Commit: `8d1ed96`
 

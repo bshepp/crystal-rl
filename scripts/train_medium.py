@@ -1,5 +1,15 @@
 #!/usr/bin/env python3
-"""Medium-scale RL training — 200k PPO steps with full surrogate.
+"""DEPRECATED — 200k PPO against the original 84-dim bootstrap-only surrogate.
+
+Superseded by `scripts/train_ppo_jarvis.py` which targets the current
+multi-task signed-m\* surrogate (JARVIS + bootstrap + Materials Project,
+156-dim fingerprints). Kept for historical reference only.
+
+----------------------------------------------------------------------
+
+Original docstring:
+
+Medium-scale RL training — 200k PPO steps with full surrogate.
 
 Uses the bootstrap-trained surrogate (794+ DFT points) covering 10 crystal families.
 Trains PPO for 200k timesteps with periodic logging and checkpointing.

@@ -1,5 +1,15 @@
 #!/usr/bin/env python3
-"""First RL training run — short PPO against bootstrapped surrogate.
+"""DEPRECATED — short PPO smoke test against the original 84-dim surrogate.
+
+Superseded by `scripts/train_ppo_jarvis.py --timesteps <N>` which works
+against the current multi-task 156-dim surrogate. Kept for historical
+reference only.
+
+----------------------------------------------------------------------
+
+Original docstring:
+
+First RL training run — short PPO against bootstrapped surrogate.
 
 Loads the bootstrapped surrogate model and runs PPO for a small number
 of steps to validate the full training loop.

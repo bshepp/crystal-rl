@@ -1,5 +1,20 @@
 #!/usr/bin/env python3
-"""Retrain with improved fingerprint (neighbor-list RDF) + multi-task surrogate.
+"""DEPRECATED — immediate predecessor to retrain_jarvis.py.
+
+This script introduced the 152-dim multi-task surrogate but trained only on
+the 794-record bootstrap dataset. Superseded by `scripts/retrain_jarvis.py`,
+which adds JARVIS-DFT (3,565 m\* records) and Materials Project (12,990
+gap-only records), uses two-phase training (freeze trunk + m\* head before
+fine-tuning gap head on MP), and uses 156-dim fingerprints with the 14-element
+species palette (Sb / Bi / Se / Te included).
+
+Kept for historical reference only.
+
+----------------------------------------------------------------------
+
+Original docstring:
+
+Retrain with improved fingerprint (neighbor-list RDF) + multi-task surrogate.
 
 Key improvements over retrain_full.py:
   1. Recomputes fingerprints from reconstructed structures (old 84-dim → new 152-dim)

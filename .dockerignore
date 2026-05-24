@@ -1,13 +1,60 @@
+# ── Version control ────────────────────────────────────
 .git
+.gitignore
+.gitattributes
+
+# ── Python ─────────────────────────────────────────────
 .venv*
 __pycache__
 *.pyc
+*.pyo
+*.egg-info
+
+# ── Lint / test caches ─────────────────────────────────
+.ruff_cache
+.pytest_cache
+.mypy_cache
+htmlcov
+.coverage
+
+# ── Data / model caches (regenerated in-container) ────
 data/checkpoints
 data/jarvis_fingerprints.npz
 data/mp_fingerprints.npz
 data/jarvis_gap_only_fingerprints.npz
+data/jarvis_fingerprints_unsigned.npz
 data/bootstrap/s3-full
+data/bootstrap/surrogate_full
+data/bootstrap/surrogate_multitask
+data/bootstrap/surrogate_bootstrap
+
+# ── QE scratch I/O ─────────────────────────────────────
 $Temp
-*.egg-info
-.ruff_cache
-.pytest_cache
+espresso.pwo
+espresso.pwi
+espresso.err
+input_tmp.in
+
+# ── Run logs (regenerated per run) ─────────────────────
+*.log
+
+# ── Personal speculative / background notes ───────────
+# These are exploratory notes, NOT project documentation.
+# Do not bake into images or surface in public-facing artifacts.
+Quantum-Negative-Mass Crystal Exploration Guide.md
+fundamental_shapes_guide.md
+notes/
+scratch/
+
+# ── IDE / OS ───────────────────────────────────────────
+.vscode
+.idea
+*.swp
+*.swo
+*~
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# ── Claude Code working state ──────────────────────────
+.claude

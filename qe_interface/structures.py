@@ -205,27 +205,31 @@ def structure_to_fingerprint(atoms: Atoms, n_bins: int = 64) -> np.ndarray:
     """Create a fixed-length fingerprint of a crystal structure.
 
     Produces a composition-aware descriptor that encodes:
-      1. Element composition (12 dims): fraction of each element in palette
+      1. Element composition (16 dims): fraction of each element in palette
       2. Element properties (4 dims): mean/std atomic number, mean/std covalent radius
       3. Lattice features (8 dims): volume/atom, lattice lengths, angles, density
       4. RDF histogram (n_bins dims): proper radial distribution function via neighbor lists
       5. Partial RDF (n_bins dims): element-pair-weighted RDF for chemical sensitivity
 
-    Total output size: 2 * n_bins + 24
+    Total output size: 2 * n_bins + 28
 
     Args:
         atoms: Crystal structure.
         n_bins: Number of bins in the RDF histogram.
 
     Returns:
-        Fingerprint vector of length 2 * n_bins + 24.
+        Fingerprint vector of length 2 * n_bins + 28.
     """
     from ase.neighborlist import neighbor_list as ase_neighbor_list
 
     features = []
 
-    # ---- 1. Element composition (12 dims) ----
-    palette = ["H", "C", "N", "O", "Si", "P", "Ge", "Ga", "As", "In", "Sn", "Al"]
+    # ---- 1. Element composition (16 dims) ----
+    # Palette matches CrystalEnv.species_palette (14 elements) plus H/O for
+    # JARVIS / MP records that contain hydrides or oxides. Sb/Bi/Se/Te added
+    # in path-B (2026-05-23) — previously dropped silently from the encoding.
+    palette = ["H", "C", "N", "O", "Si", "P", "Ge", "Ga", "As", "In", "Sn", "Al",
+               "Sb", "Bi", "Se", "Te"]
     symbols = atoms.get_chemical_symbols()
     n_atoms = len(symbols)
     comp = np.zeros(len(palette), dtype=np.float32)

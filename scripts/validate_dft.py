@@ -145,7 +145,7 @@ def main():
 
     jarvis_path = Path("data/checkpoints/jarvis_surrogate")
     if (jarvis_path / "surrogate_weights.pt").exists():
-        surrogate = MultiTaskSurrogatePredictor(input_dim=152, hidden_dim=192)
+        surrogate = MultiTaskSurrogatePredictor(input_dim=156, hidden_dim=192)
         surrogate.load(jarvis_path)
         logger.info(f"Loaded JARVIS multi-task surrogate: {surrogate.dataset_size} samples")
     else:

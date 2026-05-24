@@ -29,7 +29,7 @@ class SurrogateMLP(nn.Module):
     Maps structural fingerprints -> predicted property (e.g., effective mass).
     """
 
-    def __init__(self, input_dim: int = 152, hidden_dim: int = 128, n_layers: int = 4):
+    def __init__(self, input_dim: int = 156, hidden_dim: int = 128, n_layers: int = 4):
         super().__init__()
 
         layers = []
@@ -57,7 +57,7 @@ class MultiTaskMLP(nn.Module):
     to capture more physical information than single-task m* prediction.
     """
 
-    def __init__(self, input_dim: int = 152, hidden_dim: int = 192, n_layers: int = 4):
+    def __init__(self, input_dim: int = 156, hidden_dim: int = 192, n_layers: int = 4):
         super().__init__()
 
         # Shared trunk
@@ -251,7 +251,7 @@ class MultiTaskSurrogatePredictor:
 
     def __init__(
         self,
-        input_dim: int = 152,
+        input_dim: int = 156,
         hidden_dim: int = 192,
         n_layers: int = 4,
         lr: float = 1e-3,
