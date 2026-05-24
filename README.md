@@ -42,7 +42,12 @@ InP, AlN, InSb, GaSb) + 6 supercell (Si₄, GaAs₄, InP₄, SiC₄, Ge₄, AlN�
 | PPO (250k steps) | eval mean reward | 657.2 |
 | PPO (250k steps) | unique formulas | 11/20 |
 | DFT Validation | candidates converged | 8/8 |
-| DFT Validation | unusual band topology | 6/8 (band inversion) |
+| DFT Validation | negative DFT m\* (band-inversion *signature*) | 6/8 |
+
+(The 6/8 result reflects negative curvature at band extrema in PBE DFT — a
+signature consistent with band inversion, not a confirmation of a topological
+phase. Topological character would require additional analysis, e.g. parity
+inversion / Z₂ invariants.)
 
 > **Why the numbers went "down":** The old pipeline stripped the sign from
 > effective mass everywhere (10+ locations). This inflated surrogate correlation
@@ -151,6 +156,36 @@ exploit surrogate confusion about band-inverted materials for inflated rewards.
 - 8 lattice features (a, b, c, α, β, γ, volume, density)
 - 64 RDF features (radial distribution function, 0.5–8.0 Å)
 - 64 partial RDF features (element-pair resolved)
+
+## Citation
+
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20362335.svg)](https://doi.org/10.5281/zenodo.20362335)
+
+If you use this code or its companion dataset, please cite both:
+
+```bibtex
+@software{crystal_rl_2026,
+  title     = {bshepp/crystal-rl: Signed effective-mass pipeline for RL-driven semiconductor discovery},
+  author    = {Sheppard, Brian},
+  year      = {2026},
+  publisher = {Zenodo},
+  doi       = {10.5281/zenodo.20362335},
+  url       = {https://doi.org/10.5281/zenodo.20362335},
+  note      = {Concept DOI; resolves to the latest version}
+}
+
+@misc{crystal_rl_surrogate_dft_gap_2026,
+  title  = {Crystal-RL: surrogate-vs-DFT effective-mass gap (negative-result dataset)},
+  author = {Sheppard, Brian},
+  year   = {2026},
+  url    = {https://huggingface.co/datasets/bshepp/rl-surrogate-dft-gap}
+}
+```
+
+The [companion dataset on Hugging Face](https://huggingface.co/datasets/bshepp/rl-surrogate-dft-gap)
+contains the 794-record signed-m\* DFT bootstrap data and the 24-record
+surrogate-vs-DFT validation table that grounds the negative-result finding
+documented in [ROADMAP.md](ROADMAP.md).
 
 ## License
 
