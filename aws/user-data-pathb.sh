@@ -271,6 +271,7 @@ else
   status "stage2-running"
   docker run "${DOCKER_FLAGS[@]}" rl-materials-qe-rl:latest \
     python3 -m scripts.retrain_jarvis \
+      --include-bootstrap \
       --include-mp --max-mp 4000 \
       --hidden-dim 192 --gap-weight 0.3 --two-phase \
       --save-dir data/checkpoints/jarvis_surrogate \
